@@ -1,0 +1,88 @@
+name: 🚀 Pipeline پیشرفته
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  
+  # آزمایش روی چند سیستم عامل مختلف
+  test-matrix:
+    name: 🧪 تست روی ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node-version: [16, 18, 20]
+    
+    steps:
+    - name: 🏠 ورود به پروژه
+      uses: actions/checkout@v4
+      
+    - name: 🔧 نصب Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        
+    - name: 📚 نصب dependencies
+      run: npm ci
+      
+    - name: ✅ اجرای تست‌ها
+      run: npm run test:run
+      
+    - name: 🏗️ آزمایش Build
+      run: npm run build
+      
+    - name: 📊 آپلود Coverage
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-${{ matrix.os }}-${{ matrix.node-version }}
+        path: coverage/
+        
+  # ساخت و پوش Docker Image
+  docker-push:
+    name: 🐳 ساخت و پوش Docker
+    runs-on: ubuntu-latest
+    needs: test-matrix
+    if: github.ref == 'refs/heads/main'  # فقط روی main branch
+    
+    steps:
+    - name: 🏠 ورود به پروژه
+      uses: actions/checkout@v4
+      
+    - name: 🐳 لاگین به Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        
+    - name: 🏗️ ساخت و پوش Image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        tags: |
+          ${{ secrets.DOCKER_USERNAME }}/todo-app:latest
+          ${{ secrets.DOCKER_USERNAME }}/todo-app:${{ github.sha }}
+          
+  # اطلاع‌رسانی
+  notify:
+    name: 📢 اطلاع‌رسانی
+    runs-on: ubuntu-latest
+    needs: [test-matrix, docker-push]
+    
+    steps:
+    - name: 📧 ارسال ایمیل
+      if: always()  # حتی اگر fail شد هم اطلاع بده
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: smtp.gmail.com
+        server_port: 587
+        username: ${{ secrets.MAIL_USERNAME }}
+        password: ${{ secrets.MAIL_PASSWORD }}
+        subject: '${{ job.status }}: Pipeline ${{ github.repository }}'
+        to: '${{ secrets.NOTIFICATION_EMAIL }}'
+        from: 'GitHub Actions <noreply@github.com>'

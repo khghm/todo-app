@@ -1,0 +1,22 @@
+{
+  "name": "todo-server",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@fastify/cors": "^9.0.1",
+    "@prisma/client": "^5.6.0",
+    "fastify": "^4.24.3",
+    "zod": "^3.22.4",
+    "@trpc/server": "^10.38.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.8.7",
+    "prisma": "^5.6.0",
+    "tsx": "^4.6.1",
+    "typescript": "^5.2.2"
+  }
+}

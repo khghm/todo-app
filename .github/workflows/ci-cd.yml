@@ -1,0 +1,92 @@
+# اسم این خط تولید خودکار
+name: CI/CD Pipeline
+
+# کی باید کار کنه؟ 
+on:
+  push:    # وقتی کد رو می‌فرستی
+    branches: [ main, develop ]
+  pull_request:  # وقتی می‌خوای کد جدید رو ادغام کنی
+    branches: [ main ]
+
+# دکمه اجازه برای ربات
+permissions:
+  contents: read
+
+# کارهایی که ربات باید انجام بده
+jobs:
+  
+  # کار شماره ۱: آزمایش کیفیت
+  quality-check:
+    name: 🧪 آزمایش کیفیت کد
+    runs-on: ubuntu-latest  # روی چه کامپیوتری اجرا بشه
+    
+    steps:
+    # قدم ۱: برو تو خونه پروژه
+    - name: 🏠 ورود به پروژه
+      uses: actions/checkout@v4
+    
+    # قدم ۲: Node.js نصب کن
+    - name: 🔧 نصب Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    # قدم ۳: کتابخونه‌ها رو نصب کن
+    - name: 📚 نصب dependencies
+      run: npm ci
+      
+    # قدم ۴: تست کن ببین کدها درستن
+    - name: ✅ اجرای تست‌ها
+      run: npm run test:run
+      
+    # قدم ۵: build کن ببین خطایی داره یا نه
+    - name: 🏗️ آزمایش Build
+      run: npm run build
+
+  # کار شماره ۲: ساخت Docker image
+  docker-build:
+    name: 🐳 ساخت Docker Image
+    runs-on: ubuntu-latest
+    needs: quality-check  # اول کار شماره ۱ باید تموم بشه
+    
+    steps:
+    # قدم ۱: برو تو خونه پروژه
+    - name: 🏠 ورود به پروژه
+      uses: actions/checkout@v4
+      
+    # قدم ۲: Docker رو آماده کن
+    - name: 🐳 آماده‌سازی Docker
+      uses: docker/setup-buildx-action@v3
+      
+    # قدم ۳: Docker image بساز
+    - name: 🏗️ ساخت Image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: false  # هنوز تو Docker Hub نذار
+        tags: todo-app:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  # کار شماره ۳: اسکن امنیتی
+  security-scan:
+    name: 🔒 بررسی امنیتی
+    runs-on: ubuntu-latest
+    needs: quality-check
+    
+    steps:
+    - name: 🏠 ورود به پروژه
+      uses: actions/checkout@v4
+      
+    - name: 🔧 نصب Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: 📚 نصب dependencies
+      run: npm ci
+      
+    # اسکن کردن dependencyها ببین مشکل امنیتی دارن یا نه
+    - name: 🔍 اسکن امنیتی
+      run: npm audit --audit-level=high

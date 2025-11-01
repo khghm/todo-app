@@ -1,0 +1,18 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# کپی package files
+COPY package*.json ./
+
+# نصب dependencies
+RUN npm install
+
+# کپی سورس کد
+COPY . .
+
+# expos کردن port
+EXPOSE 3000
+
+# اجرای برنامه در حالت توسعه
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

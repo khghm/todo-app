@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  # Frontend Application
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: todo-app-frontend
+    ports:
+      - "3000:80"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Development with Hot Reload (اختیاری)
+  frontend-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: todo-app-frontend-dev
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+    restart: unless-stopped
+    profiles: ["dev"]
+
+networks:
+  default:
+    name: todo-app-network
+    
